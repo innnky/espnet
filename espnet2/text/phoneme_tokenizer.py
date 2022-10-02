@@ -9,6 +9,8 @@ import jamo
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+from espnet2.text.japanese import japanese_to_romaji_with_accent
+from espnet2.text.mandarin import chinese_to_romaji
 
 g2p_choices = [
     None,
@@ -37,8 +39,25 @@ g2p_choices = [
     "korean_jaso",
     "korean_jaso_no_space",
     "g2p_is",
+    "zh_ja_mixture",
 ]
 
+
+def zh_ja_mixture(text):
+    print(text)
+    chinese_texts = re.findall(r'\[ZH\].*?\[ZH\]', text)
+    japanese_texts = re.findall(r'\[JA\].*?\[JA\]', text)
+    for chinese_text in chinese_texts:
+        cleaned_text = chinese_to_romaji(chinese_text[4:-4])
+        text = text.replace(chinese_text, cleaned_text+' ', 1)
+    for japanese_text in japanese_texts:
+        cleaned_text = japanese_to_romaji_with_accent(
+            japanese_text[4:-4]).replace('ts', 'ʦ').replace('u', 'ɯ').replace('...', '…')
+        text = text.replace(japanese_text, cleaned_text+' ', 1)
+    text = text[:-1]
+    if re.match('[A-Za-zɯɹəɥ→↓↑]', text[-1]):
+        text += '.'
+    return list(text)
 
 def split_by_space(text) -> List[str]:
     if "   " in text:
@@ -403,6 +422,8 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = split_by_space
         elif g2p_type == "g2p_en":
             self.g2p = G2p_en(no_space=False)
+        elif g2p_type == "zh_ja_mixture":
+            self.g2p = zh_ja_mixture
         elif g2p_type == "g2p_en_no_space":
             self.g2p = G2p_en(no_space=True)
         elif g2p_type == "pyopenjtalk":
