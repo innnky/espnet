@@ -44,7 +44,6 @@ g2p_choices = [
 
 
 def zh_ja_mixture(text):
-    print(text)
     chinese_texts = re.findall(r'\[ZH\].*?\[ZH\]', text)
     japanese_texts = re.findall(r'\[JA\].*?\[JA\]', text)
     for chinese_text in chinese_texts:
