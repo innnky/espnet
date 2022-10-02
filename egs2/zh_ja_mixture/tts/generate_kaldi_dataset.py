@@ -13,7 +13,38 @@ utt2spk_list = []
 n = 0
 speaker_utt_dict = defaultdict(list)
 utt_speaker_dict = {}
+
+
+
+def zh_ja_mixture_cleaner(text):
+    import re
+    from japanese import japanese_to_romaji_with_accent
+    from mandarin import chinese_to_romaji
+
+    chinese_texts = re.findall(r'\[ZH\].*?\[ZH\]', text)
+    japanese_texts = re.findall(r'\[JA\].*?\[JA\]', text)
+    for chinese_text in chinese_texts:
+        cleaned_text = chinese_to_romaji(chinese_text[4:-4])
+        text = text.replace(chinese_text, cleaned_text+' ', 1)
+    for japanese_text in japanese_texts:
+        cleaned_text = japanese_to_romaji_with_accent(
+            japanese_text[4:-4]).replace('ts', 'ʦ').replace('u', 'ɯ').replace('...', '…')
+        text = text.replace(japanese_text, cleaned_text+' ', 1)
+    text = text[:-1]
+    if re.match('[A-Za-zɯɹəɥ→↓↑]', text[-1]):
+        text += '.'
+    print(text)
+    return text
+
 for speaker in sorted(os.listdir("raw")):
+  if speaker.endswith("_JA"):
+    language = "[JA]"
+  elif speaker.endswith("_ZH"):
+    language = "[ZH]"
+  else:
+    print("不支持的语言,或未指定语言后缀")
+    continue
+  speaker = speaker[:-3]
   uttid = 0
   if speaker.startswith("."):
     continue
@@ -21,6 +52,8 @@ for speaker in sorted(os.listdir("raw")):
   for line in transcript_file.readlines():
     wavpath, text = line.strip().split("|")
     text = language + text + language
+    text = zh_ja_mixture_cleaner(text)
+
     uttname = speaker + "%06d" % uttid
     utt_speaker_dict[uttname] = speaker
     speaker_utt_dict[speaker].append(uttname)
